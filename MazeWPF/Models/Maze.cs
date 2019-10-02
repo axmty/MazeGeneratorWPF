@@ -28,21 +28,12 @@ namespace MazeWPF.Models
             {
                 for (int j = 0; j < width; j++)
                 {
-                    var newCell = new Cell(j, i);
-
-                    _cells[i, j] = newCell;
-
-                    if (startPosition == (j, i))
-                    {
-                        this.StartCell = newCell;
-                    }
-
-                    if (exitPosition == (j, i))
-                    {
-                        this.ExitCell = newCell;
-                    }
+                    _cells[i, j] = new Cell(j, i);
                 }
             }
+
+            this.StartCell = _cells[startPosition.y, startPosition.x];
+            this.ExitCell = _cells[exitPosition.y, exitPosition.x];
         }
 
         public int Height => _cells.GetLength(0);

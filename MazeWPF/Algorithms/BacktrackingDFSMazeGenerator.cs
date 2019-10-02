@@ -24,7 +24,7 @@ namespace MazeWPF.Algorithms
                 numberVisited++;
 
                 var neighbours = maze.GetNeighbours(currentCell);
-                var unvisitedNeighbours = neighbours.Where(n => !visitedCells[n.Y, n.X]);
+                var unvisitedNeighbours = this.WhereUnvisited(visitedCells, neighbours);
                 var unvisitedNeighbourCount = unvisitedNeighbours.Count();
                 Cell chosenCell;
 
@@ -37,7 +37,7 @@ namespace MazeWPF.Algorithms
                     }
 
                     maze.RemoveWall(currentCell, chosenCell);
-                    visitedCells[chosenCell.Y, chosenCell.Y] = true;
+                    visitedCells[chosenCell.Y, chosenCell.X] = true;
                     numberVisited++;
                     currentCell = chosenCell;
                 }
