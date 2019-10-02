@@ -39,9 +39,9 @@ namespace MazeWPF.Algorithms
                 var unvisitedNeighbourCount = unvisitedNeighbours.Count();
                 Cell nextCell;
 
-                if (unvisitedNeighbourCount > 0)
+                if (unvisitedNeighbourCount > 0 && currentCell != maze.ExitCell)
                 {
-                    if (unvisitedNeighbourCount > 1)
+                    if (unvisitedNeighbourCount > 1 && numberVisited > 1)
                     {
                         backtrackStack.Push(currentCell);
                     }
