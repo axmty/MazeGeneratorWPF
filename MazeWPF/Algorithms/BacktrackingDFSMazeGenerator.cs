@@ -13,53 +13,49 @@ namespace MazeWPF.Algorithms
         {
             var maze = new Maze(width, height, startPosition, exitPosition);
             var visitedCells = new bool[maze.Height, maze.Width];
-            var numberVisited = 0;
-            var numberCells = maze.Height * maze.Width;
+            var numberVisited = 1;
+            var totalCells = maze.Height * maze.Width;
             var currentCell = maze.StartCell;
             var backtrackStack = new Stack<Cell>();
 
-            do
-            {
-                visitedCells[currentCell.Y, currentCell.X] = true;
-                numberVisited++;
+            visitedCells[currentCell.Y, currentCell.X] = true;
 
-                var neighbours = maze.GetNeighbours(currentCell);
-                var unvisitedNeighbours = this.WhereUnvisited(visitedCells, neighbours);
+            while (numberVisited < totalCells)
+            {
+                var unvisitedNeighbours = this.GetUnvisitedNeighbours(maze, currentCell, visitedCells);
                 var unvisitedNeighbourCount = unvisitedNeighbours.Count();
-                Cell chosenCell;
+                Cell nextCell;
 
                 if (unvisitedNeighbourCount > 0)
                 {
-                    chosenCell = this.ChooseRandomCell(unvisitedNeighbours);
                     if (unvisitedNeighbourCount > 1)
                     {
                         backtrackStack.Push(currentCell);
                     }
 
-                    maze.RemoveWall(currentCell, chosenCell);
-                    visitedCells[chosenCell.Y, chosenCell.X] = true;
+                    nextCell = this.ChooseRandomCell(unvisitedNeighbours);
+                    maze.RemoveWall(currentCell, nextCell);
+                    visitedCells[nextCell.Y, nextCell.X] = true;
                     numberVisited++;
-                    currentCell = chosenCell;
+                    currentCell = nextCell;
                 }
                 else if (backtrackStack.Count > 0)
                 {
-                    do
+                    while (backtrackStack.TryPop(out nextCell) && !this.GetUnvisitedNeighbours(maze, currentCell, visitedCells).Any())
                     {
-                        chosenCell = backtrackStack.Pop();
-                        neighbours = maze.GetNeighbours(chosenCell);
-                        unvisitedNeighbourCount = this.WhereUnvisited(visitedCells, neighbours).Count();
-                    } while (backtrackStack.Count > 0 && unvisitedNeighbourCount == 0);
 
-                    currentCell = chosenCell;
+                    }
+
+                    currentCell = nextCell;
                 }
-            } while (numberVisited < numberCells);
+            }
 
             return maze;
         }
 
-        private IEnumerable<Cell> WhereUnvisited(bool[,] visitedCells, IEnumerable<Cell> cells)
+        private IEnumerable<Cell> GetUnvisitedNeighbours(Maze maze, Cell cell, bool[,] visitedCells)
         {
-            return cells.Where(n => !visitedCells[n.Y, n.X]);
+            return maze.GetNeighbours(cell).Where(n => !visitedCells[n.Y, n.X]);
         }
 
         private Cell ChooseRandomCell(IEnumerable<Cell> cells)
