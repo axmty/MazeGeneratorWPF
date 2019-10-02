@@ -49,10 +49,7 @@ namespace MazeWPF.Algorithms
                     }
 
                     nextCell = this.ChooseRandomCell(unvisitedNeighbours);
-                    
-                    var openedWall = maze.OpenWallBetween(currentCell, nextCell);
-
-                    this.WallsToOpen.Add(openedWall);
+                    this.WallsToOpen.Add(maze.GetWallBetween(currentCell, nextCell));
                     visitedCells[nextCell.Y, nextCell.X] = true;
                     numberVisited++;
                     currentCell = nextCell;

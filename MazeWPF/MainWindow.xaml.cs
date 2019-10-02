@@ -1,7 +1,9 @@
 ﻿using MazeWPF.Algorithms;
+using MazeWPF.Draw;
 using MazeWPF.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -21,67 +23,86 @@ namespace MazeWPF
         private void Window_ContentRendered(object sender, EventArgs e)
         {
             var mazeGenerator = new BacktrackingDSFAlgorithm();
-            var maze1 = new Maze(10, 10, (3, 0), (7, 0));
             var maze2 = mazeGenerator.Generate(20, 20, (3, 0), (19, 16));
 
-            this.DrawMaze(maze2);
+            this.DrawMaze(maze2, mazeGenerator.WallsToOpen);
         }
 
-        private void DrawMaze(Maze maze)
+        private void DrawMaze(Maze maze, IEnumerable<Wall> wallsToOpen)
         {
             var drawnWalls = new HashSet<Wall>();
 
             Area.Width = maze.Width * CellSize;
             Area.Height = maze.Height * CellSize;
 
-            var rect = new Rectangle();
-            rect.Fill = Brushes.Red;
-            rect.Width = 30;
-            rect.Height = 30;
+            var rect = new Rectangle
+            {
+                Fill = Brushes.Red,
+                Width = 30,
+                Height = 30
+            };
 
-            Canvas.SetLeft(rect, maze.StartCell.X * 30);
-            Canvas.SetTop(rect, maze.StartCell.Y * 30);
+            Canvas.SetLeft(rect, maze.StartCell.X * CellSize);
+            Canvas.SetTop(rect, maze.StartCell.Y * CellSize);
 
-            var rect2 = new Rectangle();
-            rect2.Fill = Brushes.Green;
-            rect2.Width = 30;
-            rect2.Height = 30;
+            var rect2 = new Rectangle
+            {
+                Fill = Brushes.Green,
+                Width = 30,
+                Height = 30
+            };
 
-            Canvas.SetLeft(rect2, maze.ExitCell.X * 30);
-            Canvas.SetTop(rect2, maze.ExitCell.Y * 30);
+            Canvas.SetLeft(rect2, maze.ExitCell.X * CellSize);
+            Canvas.SetTop(rect2, maze.ExitCell.Y * CellSize);
 
             Area.Children.Add(rect);
             Area.Children.Add(rect2);
 
-            foreach (var cell in maze.Cells)
+            foreach (var wall in maze.Cells.SelectMany(c => c.Walls))
             {
-                foreach (var wall in cell.Walls)
+                if (wall.Shape != null)
                 {
-                    if (!drawnWalls.Contains(wall) && !wall.Opened)
-                    {
-                        var neighbour = wall.Cell1 == cell ? wall.Cell2 : wall.Cell1;
-                        var line = new Line();
-                        var isVerticalLine = cell.X != neighbour.X;
-
-                        line.Stroke = Brushes.Black;
-                        line.X1 = Math.Max(cell.X, neighbour.X) * CellSize;
-                        line.Y1 = Math.Max(cell.Y, neighbour.Y) * CellSize;
-
-                        if (isVerticalLine)
-                        {
-                            line.X2 = line.X1;
-                            line.Y2 = line.Y1 + CellSize;
-                        }
-                        else
-                        {
-                            line.X2 = line.X1 + CellSize;
-                            line.Y2 = line.Y1;
-                        }
-
-                        Area.Children.Add(line);
-                    }
+                    continue;
                 }
+
+                var cell = wall.Cell1;
+                var otherCell = wall.Cell2;
+                var isVerticalWall = cell.Y == otherCell.Y;
+                var border = isVerticalWall
+                    ? this.DrawVerticalLine(Math.Max(cell.X, otherCell.X) * CellSize, cell.Y * CellSize, (cell.Y + 1) * CellSize)
+                    : this.DrawHorizontalLine(Math.Max(cell.Y, otherCell.Y) * CellSize, cell.X * CellSize, (cell.X + 1) * CellSize);
+
+                wall.Shape = border;
             }
+
+            var stepByStepDrawer = new StepByStepGenerationDrawer(100, wallsToOpen, Area.Children);
+            stepByStepDrawer.Draw();
+        }
+
+        private Line DrawLine(int x1, int x2, int y1, int y2)
+        {
+            var line = new Line
+            {
+                Stroke = Brushes.Black,
+                X1 = x1,
+                X2 = x2,
+                Y1 = y1,
+                Y2 = y2
+            };
+
+            Area.Children.Add(line);
+
+            return line;
+        }
+
+        private Line DrawVerticalLine(int x, int y1, int y2)
+        {
+            return this.DrawLine(x, x, y1, y2);
+        }
+
+        private Line DrawHorizontalLine(int y, int x1, int x2)
+        {
+            return this.DrawLine(x1, x2, y, y);
         }
     }
 }

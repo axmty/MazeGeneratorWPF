@@ -1,4 +1,6 @@
-﻿namespace MazeWPF.Models
+﻿using System.Windows.Shapes;
+
+namespace MazeWPF.Models
 {
     public class Wall
     {
@@ -6,6 +8,6 @@
 
         public Cell Cell2 { get; set; }
 
-        public bool Opened { get; set; }
+        public Shape Shape { get; set; }
     }
 }

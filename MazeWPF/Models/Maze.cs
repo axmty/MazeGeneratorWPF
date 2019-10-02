@@ -57,13 +57,9 @@ namespace MazeWPF.Models
             return cell.Walls.Select(w => w.Cell1 == cell ? w.Cell2 : w.Cell1);
         }
 
-        public Wall OpenWallBetween(Cell cell, Cell neighbour)
+        public Wall GetWallBetween(Cell cell, Cell neighbour)
         {
-            var wall = cell.Walls.First(w => w.Cell1 == neighbour || w.Cell2 == neighbour);
-
-            wall.Opened = true;
-
-            return wall;
+            return cell.Walls.First(w => w.Cell1 == neighbour || w.Cell2 == neighbour);
         }
 
         private void AddWallWithNeighbourAtPosition(Cell cell, int x, int y)
@@ -77,7 +73,7 @@ namespace MazeWPF.Models
 
                 if (!alreadyLinked)
                 {
-                    var wall = new Wall { Cell1 = cell, Cell2 = neighbour, Opened = false };
+                    var wall = new Wall { Cell1 = cell, Cell2 = neighbour };
 
                     cell.Walls.Add(wall);
                     neighbour.Walls.Add(wall);
