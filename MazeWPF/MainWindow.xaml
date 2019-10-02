@@ -3,10 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MazeWPF"
         mc:Ignorable="d"
-        Title="MainWindow"
-        ContentRendered="Window_ContentRendered">
+        Title="MazeWPF"
+        ContentRendered="Window_ContentRendered"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        Background="DarkGray">
     <Canvas Name="Area" ClipToBounds="True">
         
     </Canvas>

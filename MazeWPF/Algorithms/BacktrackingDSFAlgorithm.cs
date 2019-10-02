@@ -5,9 +5,11 @@ using System.Linq;
 
 namespace MazeWPF.Algorithms
 {
-    public class BacktrackingDFSMazeGenerator : IMazeGenerator
+    public class BacktrackingDSFAlgorithm : IGenerationAlgorithm
     {
         private readonly Random _random = new Random();
+
+        public IList<Wall> WallsToOpen { get; } = new List<Wall>();
 
         /// <summary>
         /// Algorithm is following :
@@ -47,7 +49,10 @@ namespace MazeWPF.Algorithms
                     }
 
                     nextCell = this.ChooseRandomCell(unvisitedNeighbours);
-                    maze.OpenWall(currentCell, nextCell);
+                    
+                    var openedWall = maze.OpenWallBetween(currentCell, nextCell);
+
+                    this.WallsToOpen.Add(openedWall);
                     visitedCells[nextCell.Y, nextCell.X] = true;
                     numberVisited++;
                     currentCell = nextCell;

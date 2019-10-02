@@ -57,11 +57,13 @@ namespace MazeWPF.Models
             return cell.Walls.Select(w => w.Cell1 == cell ? w.Cell2 : w.Cell1);
         }
 
-        public void OpenWall(Cell cell, Cell neighbour)
+        public Wall OpenWallBetween(Cell cell, Cell neighbour)
         {
             var wall = cell.Walls.First(w => w.Cell1 == neighbour || w.Cell2 == neighbour);
 
             wall.Opened = true;
+
+            return wall;
         }
 
         private void AddWallWithNeighbourAtPosition(Cell cell, int x, int y)

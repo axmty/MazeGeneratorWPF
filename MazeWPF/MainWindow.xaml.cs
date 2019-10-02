@@ -11,6 +11,8 @@ namespace MazeWPF
 {
     public partial class MainWindow : Window
     {
+        private static readonly int CellSize = 30;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -18,9 +20,9 @@ namespace MazeWPF
 
         private void Window_ContentRendered(object sender, EventArgs e)
         {
-            var mazeGenerator = new BacktrackingDFSMazeGenerator();
+            var mazeGenerator = new BacktrackingDSFAlgorithm();
             var maze1 = new Maze(10, 10, (3, 0), (7, 0));
-            var maze2 = mazeGenerator.Generate(20, 20, (3, 0), (14, 0));
+            var maze2 = mazeGenerator.Generate(20, 20, (3, 0), (19, 16));
 
             this.DrawMaze(maze2);
         }
@@ -28,6 +30,9 @@ namespace MazeWPF
         private void DrawMaze(Maze maze)
         {
             var drawnWalls = new HashSet<Wall>();
+
+            Area.Width = maze.Width * CellSize;
+            Area.Height = maze.Height * CellSize;
 
             var rect = new Rectangle();
             rect.Fill = Brushes.Red;
@@ -59,17 +64,17 @@ namespace MazeWPF
                         var isVerticalLine = cell.X != neighbour.X;
 
                         line.Stroke = Brushes.Black;
-                        line.X1 = Math.Max(cell.X, neighbour.X) * 30;
-                        line.Y1 = Math.Max(cell.Y, neighbour.Y) * 30;
+                        line.X1 = Math.Max(cell.X, neighbour.X) * CellSize;
+                        line.Y1 = Math.Max(cell.Y, neighbour.Y) * CellSize;
 
                         if (isVerticalLine)
                         {
                             line.X2 = line.X1;
-                            line.Y2 = line.Y1 + 30;
+                            line.Y2 = line.Y1 + CellSize;
                         }
                         else
                         {
-                            line.X2 = line.X1 + 30;
+                            line.X2 = line.X1 + CellSize;
                             line.Y2 = line.Y1;
                         }
 
