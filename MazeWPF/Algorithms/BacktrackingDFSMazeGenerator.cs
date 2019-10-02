@@ -9,6 +9,20 @@ namespace MazeWPF.Algorithms
     {
         private readonly Random _random = new Random();
 
+        /// <summary>
+        /// Algorithm is following :
+        /// 1. Make the initial cell the current cell and mark it as visited
+        /// 2. While there are unvisited cells
+        ///     1. If the current cell has any neighbours which have not been visited
+        ///         1. Choose randomly one of the unvisited neighbours
+        ///         2. Push the current cell to the stack if it has more than one unvisited neighbor
+        ///         3. Remove the wall between the current cell and the chosen cell
+        ///         4. Make the chosen cell the current cell and mark it as visited
+        ///     2. Else if stack is not empty
+        ///         1. Pop a cell from the stack while the stack is not empty and the popped cell has no unvisited neighbors
+        ///         2. Make it the current cell
+        /// </summary>
+        /// <see cref="https://en.wikipedia.org/wiki/Maze_generation_algorithm#Depth-first_search"/>
         public Maze Generate(int width, int height, (int x, int y) startPosition, (int x, int y) exitPosition)
         {
             var maze = new Maze(width, height, startPosition, exitPosition);
