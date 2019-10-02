@@ -1,95 +1,99 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MazeWPF.Models
 {
-    /// <summary>
-    /// Maze graph-like implementation using an adjacency matrix.
-    /// </summary>
     public class Maze
     {
-        private readonly Cell[,] _cells;
-        private readonly bool[,] _passes;
-
-        /// <summary>
-        /// Create a maze from the given dimensions, walls all around each cell.
-        /// </summary>
         public Maze(int width, int height, (int x, int y) startPosition, (int x, int y) exitPosition)
         {
-            var totalCells = width * height;
+            this.Cells = new Cell[height * width];
+            this.Width = width;
+            this.Height = height;
 
-            _cells = new Cell[width, height];
-            _passes = new bool[totalCells, totalCells];
-
-            this.CheckIsInGrid(startPosition.x, startPosition.y);
-            this.CheckIsInGrid(exitPosition.x, exitPosition.y);
+            this.CheckIsStrictlyOnBorder(startPosition.x, startPosition.y);
+            this.CheckIsStrictlyOnBorder(exitPosition.x, exitPosition.y);
 
             for (int i = 0; i < height; i++)
             {
                 for (int j = 0; j < width; j++)
                 {
-                    _cells[i, j] = new Cell(j, i);
+                    this.Cells[i * width + j] = new Cell(j, i);
                 }
             }
 
-            this.StartCell = _cells[startPosition.y, startPosition.x];
-            this.ExitCell = _cells[exitPosition.y, exitPosition.x];
+            for (int i = 0; i < height; i++)
+            {
+                for (int j = 0; j < width; j++)
+                {
+                    var cell = this.GetCellAtPosition(j, i);
+
+                    this.AddWallWithNeighbourAtPosition(cell, j - 1, i);
+                    this.AddWallWithNeighbourAtPosition(cell, j + 1, i);
+                    this.AddWallWithNeighbourAtPosition(cell, j, i - 1);
+                    this.AddWallWithNeighbourAtPosition(cell, j, i + 1);
+                }
+            }
+
+            this.StartCell = this.Cells[startPosition.y * width + startPosition.x];
+            this.ExitCell = this.Cells[exitPosition.y * width + exitPosition.x];
         }
 
-        public int Height => _cells.GetLength(0);
+        public int Height { get; }
 
-        public int Width => _cells.GetLength(1);
+        public int Width { get; }
 
         public Cell StartCell { get; }
 
         public Cell ExitCell { get; }
 
-        /// <summary>
-        /// Get the neighbours of the specified cell.
-        /// </summary>
+        public Cell[] Cells { get; }
+
+        public int CellCount => this.Cells.Length;
+
         public IEnumerable<Cell> GetNeighbours(Cell cell)
         {
-            var neighbours = new List<Cell>();
-
-            this.AddCellAtPositionIfExists(neighbours, cell.X - 1, cell.Y);
-            this.AddCellAtPositionIfExists(neighbours, cell.X + 1, cell.Y);
-            this.AddCellAtPositionIfExists(neighbours, cell.X, cell.Y - 1);
-            this.AddCellAtPositionIfExists(neighbours, cell.X, cell.Y + 1);
-
-            return neighbours;
+            return cell.Walls.Select(w => w.Cell1 == cell ? w.Cell2 : w.Cell1);
         }
 
-        /// <summary>
-        /// Remove a wall between two neighboring cells using the adjacency matrix.
-        /// </summary>
-        public void RemoveWall(Cell cell, Cell neighbour)
+        public void OpenWall(Cell cell, Cell neighbour)
         {
-            var cellNumber = this.GetCellNumber(cell);
-            var neighbourNumber = this.GetCellNumber(neighbour);
+            var wall = cell.Walls.First(w => w.Cell1 == neighbour || w.Cell2 == neighbour);
 
-            _passes[cellNumber, neighbourNumber] = true;
-            _passes[neighbourNumber, cellNumber] = true;
+            wall.Opened = true;
         }
 
-        private int GetCellNumber(Cell cell)
-        {
-            return cell.Y * this.Width + cell.X;
-        }
-
-        private void AddCellAtPositionIfExists(ICollection<Cell> cells, int x, int y)
+        private void AddWallWithNeighbourAtPosition(Cell cell, int x, int y)
         {
             if (this.PositionIsInGrid(x, y))
             {
-                cells.Add(_cells[y, x]);
+                var neighbour = this.GetCellAtPosition(x, y);
+                var alreadyLinked =
+                    cell.Walls.Any(w => w.Cell1 == neighbour || w.Cell2 == neighbour) ||
+                    neighbour.Walls.Any(w => w.Cell1 == cell || w.Cell2 == cell);
+
+                if (!alreadyLinked)
+                {
+                    var wall = new Wall { Cell1 = cell, Cell2 = neighbour, Opened = false };
+
+                    cell.Walls.Add(wall);
+                    neighbour.Walls.Add(wall);
+                }
             }
         }
 
-        private void CheckIsInGrid(int x, int y)
+        private Cell GetCellAtPosition(int x, int y)
         {
-            if (!this.PositionIsInGrid(x, y))
+            return this.Cells[y * this.Width + x];
+        }
+
+        private void CheckIsStrictlyOnBorder(int x, int y)
+        {
+            if (((x != 0 && x != this.Width - 1) || (y <= 0 || y >= this.Height - 1)) &&
+                ((y != 0 && y != this.Height - 1) || (x <= 0 || x >= this.Width - 1)))
             {
-                throw new InvalidOperationException(
-                    $"Cell position ({x}, {y}) is not within the maze.");
+                throw new InvalidOperationException($"Cell position ({x}, {y}) is not on a border.");
             }
         }
 

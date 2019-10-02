@@ -28,13 +28,12 @@ namespace MazeWPF.Algorithms
             var maze = new Maze(width, height, startPosition, exitPosition);
             var visitedCells = new bool[maze.Height, maze.Width];
             var numberVisited = 1;
-            var totalCells = maze.Height * maze.Width;
             var currentCell = maze.StartCell;
             var backtrackStack = new Stack<Cell>();
 
             visitedCells[currentCell.Y, currentCell.X] = true;
 
-            while (numberVisited < totalCells)
+            while (numberVisited < maze.CellCount)
             {
                 var unvisitedNeighbours = this.GetUnvisitedNeighbours(maze, currentCell, visitedCells);
                 var unvisitedNeighbourCount = unvisitedNeighbours.Count();
@@ -48,16 +47,21 @@ namespace MazeWPF.Algorithms
                     }
 
                     nextCell = this.ChooseRandomCell(unvisitedNeighbours);
-                    maze.RemoveWall(currentCell, nextCell);
+                    maze.OpenWall(currentCell, nextCell);
                     visitedCells[nextCell.Y, nextCell.X] = true;
                     numberVisited++;
                     currentCell = nextCell;
                 }
                 else if (backtrackStack.Count > 0)
                 {
-                    while (backtrackStack.TryPop(out nextCell) && !this.GetUnvisitedNeighbours(maze, currentCell, visitedCells).Any())
+                    while (backtrackStack.TryPop(out nextCell))
                     {
+                        var anyUnvisitedNeighbour = this.GetUnvisitedNeighbours(maze, nextCell, visitedCells).Any();
 
+                        if (anyUnvisitedNeighbour)
+                        {
+                            break;
+                        }
                     }
 
                     currentCell = nextCell;
