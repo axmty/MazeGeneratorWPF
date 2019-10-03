@@ -27,7 +27,7 @@ namespace MazeWPF.Models
             {
                 for (int j = 0; j < width; j++)
                 {
-                    var cell = this.GetCellAtPosition(j, i);
+                    var cell = this[j, i];
 
                     this.AddWallWithNeighbourAtPosition(cell, j - 1, i);
                     this.AddWallWithNeighbourAtPosition(cell, j + 1, i);
@@ -52,6 +52,8 @@ namespace MazeWPF.Models
 
         public int CellCount => this.Cells.Length;
 
+        public Cell this[int x, int y] => this.Cells[y * this.Width + x];
+
         public IEnumerable<Cell> GetNeighbours(Cell cell)
         {
             return cell.Walls.Select(w => w.Cell1 == cell ? w.Cell2 : w.Cell1);
@@ -59,14 +61,26 @@ namespace MazeWPF.Models
 
         public Wall GetWallBetween(Cell cell, Cell neighbour)
         {
+            if (!this.AreNeighbours(cell, neighbour))
+            {
+                throw new ArgumentException("The two provided cells are not neighbours.");
+            }
+
             return cell.Walls.First(w => w.Cell1 == neighbour || w.Cell2 == neighbour);
+        }
+
+        private bool AreNeighbours(Cell cell, Cell neighbour)
+        {
+            return
+                ((cell.X == neighbour.X) && Math.Abs(cell.Y - neighbour.Y) == 1) ||
+                ((cell.Y == neighbour.Y) && Math.Abs(cell.X - neighbour.X) == 1);
         }
 
         private void AddWallWithNeighbourAtPosition(Cell cell, int x, int y)
         {
             if (this.PositionIsInGrid(x, y))
             {
-                var neighbour = this.GetCellAtPosition(x, y);
+                var neighbour = this[x, y];
                 var alreadyLinked =
                     cell.Walls.Any(w => w.Cell1 == neighbour || w.Cell2 == neighbour) ||
                     neighbour.Walls.Any(w => w.Cell1 == cell || w.Cell2 == cell);
@@ -79,11 +93,6 @@ namespace MazeWPF.Models
                     neighbour.Walls.Add(wall);
                 }
             }
-        }
-
-        private Cell GetCellAtPosition(int x, int y)
-        {
-            return this.Cells[y * this.Width + x];
         }
 
         private void CheckIsPositionOnBorder(int x, int y)

@@ -8,12 +8,18 @@ namespace MazeWPF.UnitTests
     public class Maze_Tests
     {
         [Fact]
+        public void GetWallBetween_NonNeighboringCells_ThrowsException()
+        {
+
+        }
+
+        [Fact]
         public void GetNeighbours_OfCornerCell_ReturnsTwoNeighbours()
         {
-            var startCellPosition = (0, 0);
-            var maze = new Maze(10, 10, startCellPosition, (0, 3));
+            var maze = new Maze(10, 10, (0, 0), (0, 3));
+            var cell = maze[0, 0];
 
-            var neighbours = maze.GetNeighbours(maze.StartCell);
+            var neighbours = maze.GetNeighbours(cell);
 
             neighbours
                 .Select(c => (c.X, c.Y))
@@ -24,11 +30,11 @@ namespace MazeWPF.UnitTests
         [Fact]
         public void GetNeighbours_OfStrictBorderCell_ReturnsThreeNeighbours()
         {
-            var startCellPosition = (4, 0);
-            var maze = new Maze(10, 10, startCellPosition, (0, 3));
+            var maze = new Maze(10, 10, (0, 0), (0, 3));
+            var cell = maze[4, 0];
 
-            var neighbours = maze.GetNeighbours(maze.StartCell);
-
+            var neighbours = maze.GetNeighbours(cell);
+            
             neighbours
                 .Select(c => (c.X, c.Y))
                 .Should()
@@ -39,9 +45,9 @@ namespace MazeWPF.UnitTests
         public void GetNeighbours_OfInsideCell_ReturnsFourNeighbours()
         {
             var maze = new Maze(10, 10, (0, 0), (0, 3));
-            var insideCell = maze.Cells.First(c => (c.X, c.Y) == (3, 3));
+            var cell = maze[3, 3];
 
-            var neighbours = maze.GetNeighbours(insideCell);
+            var neighbours = maze.GetNeighbours(cell);
 
             neighbours
                 .Select(c => (c.X, c.Y))
