@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace MazeWPF.Algorithms
 {
-    public class BacktrackingDSFAlgorithm : IGenerationAlgorithm
+    public class BacktrackingGenerationAlgoritm : IGenerationAlgorithm
     {
         private readonly Random _random = new Random();
 

@@ -22,7 +22,7 @@ namespace MazeWPF
 
         private void Window_ContentRendered(object sender, EventArgs e)
         {
-            var mazeGenerator = new BacktrackingDSFAlgorithm();
+            var mazeGenerator = new BacktrackingGenerationAlgoritm();
             var maze2 = mazeGenerator.Generate(20, 20, (3, 0), (19, 16));
 
             this.DrawMaze(maze2, mazeGenerator.WallsToOpen);
