@@ -12,8 +12,8 @@ namespace MazeWPF.Models
             this.Width = width;
             this.Height = height;
 
-            this.CheckIsStrictlyOnBorder(startPosition.x, startPosition.y);
-            this.CheckIsStrictlyOnBorder(exitPosition.x, exitPosition.y);
+            this.CheckIsPositionOnBorder(startPosition.x, startPosition.y);
+            this.CheckIsPositionOnBorder(exitPosition.x, exitPosition.y);
 
             for (int i = 0; i < height; i++)
             {
@@ -86,10 +86,13 @@ namespace MazeWPF.Models
             return this.Cells[y * this.Width + x];
         }
 
-        private void CheckIsStrictlyOnBorder(int x, int y)
+        private void CheckIsPositionOnBorder(int x, int y)
         {
-            if (((x != 0 && x != this.Width - 1) || (y <= 0 || y >= this.Height - 1)) &&
-                ((y != 0 && y != this.Height - 1) || (x <= 0 || x >= this.Width - 1)))
+            var onBorder =
+                ((x == 0 || x == this.Width - 1) && (y >= 0 && y < this.Height)) ||
+                ((y == 0 || y == this.Height - 1) && (x >= 0 && x < this.Width));
+
+            if (!onBorder)
             {
                 throw new InvalidOperationException($"Cell position ({x}, {y}) is not on a border.");
             }
