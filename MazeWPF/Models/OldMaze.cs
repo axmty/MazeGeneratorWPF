@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace MazeWPF.Models
 {
-    public class Maze
+    public class OldMaze
     {
-        public Maze(int width, int height, (int x, int y) startPosition, (int x, int y) exitPosition)
+        public OldMaze(int width, int height, (int x, int y) startPosition, (int x, int y) exitPosition)
         {
             this.Cells = new Cell[height * width];
             this.Width = width;

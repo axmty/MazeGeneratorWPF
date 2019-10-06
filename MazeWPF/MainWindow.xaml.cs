@@ -67,42 +67,13 @@ namespace MazeWPF
 
                 var cell = wall.Cell1;
                 var otherCell = wall.Cell2;
-                var isVerticalWall = cell.Y == otherCell.Y;
-                var border = isVerticalWall
-                    ? this.DrawVerticalLine(Math.Max(cell.X, otherCell.X) * CellSize, cell.Y * CellSize, (cell.Y + 1) * CellSize)
-                    : this.DrawHorizontalLine(Math.Max(cell.Y, otherCell.Y) * CellSize, cell.X * CellSize, (cell.X + 1) * CellSize);
-
-                wall.Shape = border;
+                
             }
 
             var stepByStepDrawer = new StepByStepGenerationDrawer(100, wallsToOpen, Area.Children);
             stepByStepDrawer.Draw();
         }
 
-        private Line DrawLine(int x1, int x2, int y1, int y2)
-        {
-            var line = new Line
-            {
-                Stroke = Brushes.Black,
-                X1 = x1,
-                X2 = x2,
-                Y1 = y1,
-                Y2 = y2
-            };
-
-            Area.Children.Add(line);
-
-            return line;
-        }
-
-        private Line DrawVerticalLine(int x, int y1, int y2)
-        {
-            return this.DrawLine(x, x, y1, y2);
-        }
-
-        private Line DrawHorizontalLine(int y, int x1, int x2)
-        {
-            return this.DrawLine(x1, x2, y, y);
-        }
+        
     }
 }
