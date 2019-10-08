@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -10,9 +12,12 @@ namespace MazeWPF
 {
     public class Maze
     {
+        private readonly Node[,] _nodes;
+
         public Maze(int width, int height)
         {
-            this.Nodes = new Node[height, width];
+            _nodes = new Node[height, width];
+            
             this.Width = width;
             this.Height = height;
 
@@ -20,7 +25,7 @@ namespace MazeWPF
             {
                 for (int j = 0; j < width; j++)
                 {
-                    this.Nodes[i, j] = new Node(j, i);
+                    this._nodes[i, j] = new Node(j, i);
                 }
             }
         }
@@ -29,11 +34,7 @@ namespace MazeWPF
 
         public int Width { get; }
 
-        public Node[,] Nodes { get; }
-
-        public int CellCount => this.Nodes.Length;
-
-        public Node this[int x, int y] => this.Nodes[y, x];
+        public Node this[int x, int y] => this._nodes[y, x];
 
         public Node FirstNode => this[0, 0];
 
@@ -49,7 +50,7 @@ namespace MazeWPF
 
             return surroundingPositions
                 .Where(pos => this.PositionIsInGrid(pos.X, pos.Y))
-                .Select(pos => this[pos.Y, pos.X]);
+                .Select(pos => this[pos.X, pos.Y]);
         }
 
         private bool PositionIsInGrid(int x, int y)
@@ -75,13 +76,11 @@ namespace MazeWPF
 
     public class MazeEngine
     {
-        private readonly MazeDrawer _drawer;
+        private readonly MazeStepByStepDrawer _drawer;
         private readonly Random _random = new Random();
-        private readonly DispatcherTimer d = new DispatcherTimer();
-        
         private Maze _maze;
 
-        public MazeEngine(MazeDrawer drawer)
+        public MazeEngine(MazeStepByStepDrawer drawer)
         {
             _drawer = drawer;
         }
@@ -89,9 +88,8 @@ namespace MazeWPF
         public void GenerateRandom(int width, int height)
         {
             _maze = new Maze(width, height);
-
             this.InitMazeDrawing(width, height);
-
+            
             var totalNodes = width * height;
             var visitedNodes = new bool[height, width];
             var backtrackStack = new Stack<Node>();
@@ -108,13 +106,13 @@ namespace MazeWPF
 
                 if (unvisitedNeigboursCount > 0)
                 {
-                    if (unvisitedNeigboursCount > 1 && numberVisited > 1)
+                    if (unvisitedNeigboursCount > 1)
                     {
                         backtrackStack.Push(currentNode);
                     }
 
                     nextNode = this.ChooseRandomNode(unvisitedNeighbours);
-                    _drawer.RemoveWallBetween(currentNode.X, currentNode.Y, nextNode.X, nextNode.Y);
+                     _drawer.RemoveWallBetween(currentNode.X, currentNode.Y, nextNode.X, nextNode.Y);
                     visitedNodes[nextNode.Y, nextNode.X] = true;
                     numberVisited++;
                     currentNode = nextNode;
@@ -134,6 +132,8 @@ namespace MazeWPF
                     currentNode = nextNode;
                 }
             }
+
+            _drawer.Draw();
         }
 
         public void Solve()
@@ -190,7 +190,7 @@ namespace MazeWPF
         Visited
     }
 
-    public class MazeDrawer
+    public class MazeStepByStepDrawer
     {
         private static readonly Dictionary<NodeState, Brush> NodeStatesColors = new Dictionary<NodeState, Brush>
         {
@@ -204,11 +204,14 @@ namespace MazeWPF
         private readonly int _nodeSize;
         private readonly Dictionary<(int, int), Line> _wallsFromNodesAddition = new Dictionary<(int, int), Line>();
         private readonly Dictionary<int, Rectangle> _nodesFromHashCode = new Dictionary<int, Rectangle>();
+        private readonly Queue<Action> _steps = new Queue<Action>();
+        private readonly int _interval;
 
-        public MazeDrawer(Canvas drawingArea, int nodeSize)
+        public MazeStepByStepDrawer(Canvas drawingArea, int nodeSize, int interval)
         {
             _drawingArea = drawingArea;
             _nodeSize = nodeSize;
+            _interval = interval;
         }
 
         public void InitMazeArea(int mazeWidth, int mazeHeight)
@@ -217,6 +220,27 @@ namespace MazeWPF
 
             _drawingArea.Width = mazeWidth * _nodeSize;
             _drawingArea.Height = mazeHeight * _nodeSize;
+        }
+
+        public void Draw()
+        {
+            var timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(_interval)
+            };
+
+            timer.Tick += (object sender, EventArgs eventArgs) =>
+            {
+                if (_steps.TryDequeue(out var step))
+                {
+                    step();
+                }
+                else
+                {
+                    timer.Stop();
+                }
+            };
+            timer.Start();
         }
 
         public void InitNode(int x, int y)
@@ -247,15 +271,21 @@ namespace MazeWPF
 
         public void RemoveWallBetween(int x1, int y1, int x2, int y2)
         {
-            var nodesAddition = (x1 + x2, y1 + y2);
+            _steps.Enqueue(() =>
+            {
+                var nodesAddition = (x1 + x2, y1 + y2);
 
-            _drawingArea.Children.Remove(_wallsFromNodesAddition[nodesAddition]);
-            _wallsFromNodesAddition.Remove(nodesAddition);
+                _drawingArea.Children.Remove(_wallsFromNodesAddition[nodesAddition]);
+                _wallsFromNodesAddition.Remove(nodesAddition);
+            });
         }
 
         public void ChangeNodeState(int x, int y, NodeState newState)
         {
-            _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[newState];
+            _steps.Enqueue(() =>
+            {
+                _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[newState];
+            });
         }
 
         private void SaveWall(Line wall, int x1, int y1, int x2, int y2)

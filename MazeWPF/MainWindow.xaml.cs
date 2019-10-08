@@ -5,8 +5,6 @@ namespace MazeWPF
 {
     public partial class MainWindow : Window
     {
-        private static readonly int CellSize = 30;
-
         public MainWindow()
         {
             InitializeComponent();
@@ -14,10 +12,10 @@ namespace MazeWPF
 
         private void Window_ContentRendered(object sender, EventArgs e)
         {
-            var mazeDrawer = new MazeDrawer(Area, 20);
+            var mazeDrawer = new MazeStepByStepDrawer(Area, 20, 200);
             var mazeEngine = new MazeEngine(mazeDrawer);
 
-            mazeEngine.GenerateRandom(20, 20);
+            mazeEngine.GenerateRandom(10, 10);
         }
     }
 }
