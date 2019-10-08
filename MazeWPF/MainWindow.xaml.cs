@@ -12,10 +12,10 @@ namespace MazeWPF
 
         private void Window_ContentRendered(object sender, EventArgs e)
         {
-            var mazeDrawer = new MazeStepByStepDrawer(Area, 20, 200);
+            var mazeDrawer = new MazeStepByStepDrawer(Area, 25, 40);
             var mazeEngine = new MazeEngine(mazeDrawer);
 
-            mazeEngine.GenerateRandom(10, 10);
+            mazeEngine.GenerateRandom(30, 30);
         }
     }
 }

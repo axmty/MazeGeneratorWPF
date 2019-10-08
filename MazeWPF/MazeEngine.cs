@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -90,15 +88,14 @@ namespace MazeWPF
             _maze = new Maze(width, height);
             this.InitMazeDrawing(width, height);
             
-            var totalNodes = width * height;
             var visitedNodes = new bool[height, width];
             var backtrackStack = new Stack<Node>();
-            var numberVisited = 1;
             var currentNode = _maze.FirstNode;
 
             visitedNodes[0, 0] = true;
+            _drawer.ChangeNodeState(currentNode.X, currentNode.Y, NodeState.Current);
 
-            while (numberVisited < totalNodes)
+            do
             {
                 var unvisitedNeighbours = this.GetUnvisitedNeighbours(currentNode, visitedNodes);
                 var unvisitedNeigboursCount = unvisitedNeighbours.Count();
@@ -106,32 +103,24 @@ namespace MazeWPF
 
                 if (unvisitedNeigboursCount > 0)
                 {
-                    if (unvisitedNeigboursCount > 1)
-                    {
-                        backtrackStack.Push(currentNode);
-                    }
-
+                    backtrackStack.Push(currentNode);
                     nextNode = this.ChooseRandomNode(unvisitedNeighbours);
-                     _drawer.RemoveWallBetween(currentNode.X, currentNode.Y, nextNode.X, nextNode.Y);
+                    _drawer.RemoveWallBetween(currentNode.X, currentNode.Y, nextNode.X, nextNode.Y);
+                    _drawer.ChangeNodesState(
+                        (currentNode.X, currentNode.Y, NodeState.Visited),
+                        (nextNode.X, nextNode.Y, NodeState.Current));
                     visitedNodes[nextNode.Y, nextNode.X] = true;
-                    numberVisited++;
                     currentNode = nextNode;
                 }
                 else if (backtrackStack.Count > 0)
                 {
-                    while (backtrackStack.TryPop(out nextNode))
-                    {
-                        var anyUnvisitedNeighbour = this.GetUnvisitedNeighbours(nextNode, visitedNodes).Any();
-
-                        if (anyUnvisitedNeighbour)
-                        {
-                            break;
-                        }
-                    }
-
+                    nextNode = backtrackStack.Pop();
+                    _drawer.ChangeNodesState(
+                        (currentNode.X, currentNode.Y, NodeState.Backtracked),
+                        (nextNode.X, nextNode.Y, NodeState.Current));
                     currentNode = nextNode;
                 }
-            }
+            } while (backtrackStack.Count > 0);
 
             _drawer.Draw();
         }
@@ -194,11 +183,13 @@ namespace MazeWPF
     {
         private static readonly Dictionary<NodeState, Brush> NodeStatesColors = new Dictionary<NodeState, Brush>
         {
-            [NodeState.Backtracked] = Brushes.LimeGreen,
-            [NodeState.Current] = Brushes.GreenYellow,
-            [NodeState.Unvisited] = Brushes.AliceBlue,
-            [NodeState.Visited] = Brushes.Orange
+            [NodeState.Backtracked] = new SolidColorBrush(Color.FromRgb(94, 226, 167)),
+            [NodeState.Current] = new SolidColorBrush(Color.FromRgb(202, 250, 140)),
+            [NodeState.Unvisited] = new SolidColorBrush(Color.FromRgb(45, 141, 175)),
+            [NodeState.Visited] = new SolidColorBrush(Color.FromRgb(226, 166, 94))
         };
+
+        private static readonly Brush WallColor = new SolidColorBrush(Color.FromRgb(48, 57, 80));
 
         private readonly Canvas _drawingArea;
         private readonly int _nodeSize;
@@ -263,8 +254,8 @@ namespace MazeWPF
         {
             var isVerticalWall = y1 == y2;
             var wall = isVerticalWall
-                ? this.DrawVerticalLine(Math.Max(x1, x2) * _nodeSize, y1 * _nodeSize, (y1 + 1) * _nodeSize)
-                : this.DrawHorizontalLine(Math.Max(y1, y2) * _nodeSize, x1 * _nodeSize, (x1 + 1) * _nodeSize);
+                ? this.DrawVerticalLine(Math.Max(x1, x2) * _nodeSize, y1 * _nodeSize, (y1 + 1) * _nodeSize, WallColor)
+                : this.DrawHorizontalLine(Math.Max(y1, y2) * _nodeSize, x1 * _nodeSize, (x1 + 1) * _nodeSize, WallColor);
 
             this.SaveWall(wall, x1, y1, x2, y2);
         }
@@ -288,6 +279,17 @@ namespace MazeWPF
             });
         }
 
+        public void ChangeNodesState(params (int x, int y, NodeState state)[] newNodesState)
+        {
+            _steps.Enqueue(() =>
+            {
+                foreach (var (x, y, state) in newNodesState)
+                {
+                    _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[state];
+                }
+            });
+        }
+
         private void SaveWall(Line wall, int x1, int y1, int x2, int y2)
         {
             var nodesAddition = (x1 + x2, y1 + y2);
@@ -300,11 +302,12 @@ namespace MazeWPF
             _wallsFromNodesAddition.Add(nodesAddition, wall);
         }
 
-        private Line DrawLine(int x1, int x2, int y1, int y2)
+        private Line DrawLine(int x1, int x2, int y1, int y2, Brush color)
         {
             var line = new Line
             {
-                Stroke = Brushes.Black,
+                Stroke = color,
+                StrokeThickness = 2,
                 X1 = x1,
                 X2 = x2,
                 Y1 = y1,
@@ -316,14 +319,14 @@ namespace MazeWPF
             return line;
         }
 
-        private Line DrawVerticalLine(int x, int y1, int y2)
+        private Line DrawVerticalLine(int x, int y1, int y2, Brush color)
         {
-            return this.DrawLine(x, x, y1, y2);
+            return this.DrawLine(x, x, y1, y2, color);
         }
 
-        private Line DrawHorizontalLine(int y, int x1, int x2)
+        private Line DrawHorizontalLine(int y, int x1, int x2, Brush color)
         {
-            return this.DrawLine(x1, x2, y, y);
+            return this.DrawLine(x1, x2, y, y, color);
         }
 
         private void ClearArea()
