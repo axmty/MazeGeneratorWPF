@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace MazeWPF
 {
@@ -11,7 +12,7 @@ namespace MazeWPF
     {
         public Maze(int width, int height)
         {
-            this.Cells = new Cell[height * width];
+            this.Nodes = new Node[height, width];
             this.Width = width;
             this.Height = height;
 
@@ -19,80 +20,36 @@ namespace MazeWPF
             {
                 for (int j = 0; j < width; j++)
                 {
-                    this.Cells[i * width + j] = new Cell(j, i);
+                    this.Nodes[i, j] = new Node(j, i);
                 }
             }
-
-            for (int i = 0; i < height; i++)
-            {
-                for (int j = 0; j < width; j++)
-                {
-                    var cell = this[j, i];
-            
-                    this.AddWallWithNeighbourAtPosition(cell, j - 1, i);
-                    this.AddWallWithNeighbourAtPosition(cell, j + 1, i);
-                    this.AddWallWithNeighbourAtPosition(cell, j, i - 1);
-                    this.AddWallWithNeighbourAtPosition(cell, j, i + 1);
-                }
-            }
-
-            this.StartCell = this.Cells[startPosition.y * width + startPosition.x];
-            this.ExitCell = this.Cells[exitPosition.y * width + exitPosition.x];
         }
 
         public int Height { get; }
 
         public int Width { get; }
 
-        public Cell StartCell { get; }
+        public Node[,] Nodes { get; }
 
-        public Cell ExitCell { get; }
+        public int CellCount => this.Nodes.Length;
 
-        public Cell[] Cells { get; }
+        public Node this[int x, int y] => this.Nodes[y, x];
 
-        public int CellCount => this.Cells.Length;
+        public Node FirstNode => this[0, 0];
 
-        public Cell this[int x, int y] => this.Cells[y * this.Width + x];
-
-        public IEnumerable<Cell> GetNeighbours(Cell cell)
+        public IEnumerable<Node> GetNeighbours(Node node)
         {
-            return cell.Walls.Select(w => w.Cell1 == cell ? w.Cell2 : w.Cell1);
-        }
-
-        public Wall GetWallBetween(Cell cell, Cell neighbour)
-        {
-            if (!this.AreNeighbours(cell, neighbour))
+            var surroundingPositions = new (int X, int Y)[]
             {
-                throw new ArgumentException("The two provided cells are not neighbours.");
-            }
+                (node.X - 1, node.Y),
+                (node.X + 1, node.Y),
+                (node.X, node.Y - 1),
+                (node.X, node.Y + 1)
+            };
 
-            return cell.Walls.First(w => w.Cell1 == neighbour || w.Cell2 == neighbour);
-        }
-
-        private bool AreNeighbours(Cell cell, Cell neighbour)
-        {
-            return
-                ((cell.X == neighbour.X) && Math.Abs(cell.Y - neighbour.Y) == 1) ||
-                ((cell.Y == neighbour.Y) && Math.Abs(cell.X - neighbour.X) == 1);
-        }
-
-        private void AddWallWithNeighbourAtPosition(Cell cell, int x, int y)
-        {
-            if (this.PositionIsInGrid(x, y))
-            {
-                var neighbour = this[x, y];
-                var alreadyLinked =
-                    cell.Walls.Any(w => w.Cell1 == neighbour || w.Cell2 == neighbour) ||
-                    neighbour.Walls.Any(w => w.Cell1 == cell || w.Cell2 == cell);
-
-                if (!alreadyLinked)
-                {
-                    var wall = new Wall { Cell1 = cell, Cell2 = neighbour };
-
-                    cell.Walls.Add(wall);
-                    neighbour.Walls.Add(wall);
-                }
-            }
+            return surroundingPositions
+                .Where(pos => this.PositionIsInGrid(pos.X, pos.Y))
+                .Select(pos => this[pos.Y, pos.X]);
         }
 
         private bool PositionIsInGrid(int x, int y)
@@ -103,9 +60,15 @@ namespace MazeWPF
 
     public class Node
     {
-        public int X { get; set; }
+        public Node(int x, int y)
+        {
+            this.X = x;
+            this.Y = y;
+        }
 
-        public int Y { get; set; }
+        public int X { get; }
+
+        public int Y { get; }
 
         public List<Node> ConnectedNodes { get; } = new List<Node>();
     }
@@ -113,6 +76,8 @@ namespace MazeWPF
     public class MazeEngine
     {
         private readonly MazeDrawer _drawer;
+        private readonly Random _random = new Random();
+        private readonly DispatcherTimer d = new DispatcherTimer();
         
         private Maze _maze;
 
@@ -121,14 +86,54 @@ namespace MazeWPF
             _drawer = drawer;
         }
 
-        public Maze GenerateRandom(int width, int height)
+        public void GenerateRandom(int width, int height)
         {
-            _drawer.InitMazeArea(width, height);
             _maze = new Maze(width, height);
 
-            var visitedCells = new bool[height, width];
+            this.InitMazeDrawing(width, height);
+
+            var totalNodes = width * height;
+            var visitedNodes = new bool[height, width];
             var backtrackStack = new Stack<Node>();
-            var walls = this.PutWallsEverywhere();
+            var numberVisited = 1;
+            var currentNode = _maze.FirstNode;
+
+            visitedNodes[0, 0] = true;
+
+            while (numberVisited < totalNodes)
+            {
+                var unvisitedNeighbours = this.GetUnvisitedNeighbours(currentNode, visitedNodes);
+                var unvisitedNeigboursCount = unvisitedNeighbours.Count();
+                Node nextNode;
+
+                if (unvisitedNeigboursCount > 0)
+                {
+                    if (unvisitedNeigboursCount > 1 && numberVisited > 1)
+                    {
+                        backtrackStack.Push(currentNode);
+                    }
+
+                    nextNode = this.ChooseRandomNode(unvisitedNeighbours);
+                    _drawer.RemoveWallBetween(currentNode.X, currentNode.Y, nextNode.X, nextNode.Y);
+                    visitedNodes[nextNode.Y, nextNode.X] = true;
+                    numberVisited++;
+                    currentNode = nextNode;
+                }
+                else if (backtrackStack.Count > 0)
+                {
+                    while (backtrackStack.TryPop(out nextNode))
+                    {
+                        var anyUnvisitedNeighbour = this.GetUnvisitedNeighbours(nextNode, visitedNodes).Any();
+
+                        if (anyUnvisitedNeighbour)
+                        {
+                            break;
+                        }
+                    }
+
+                    currentNode = nextNode;
+                }
+            }
         }
 
         public void Solve()
@@ -137,20 +142,68 @@ namespace MazeWPF
             {
                 throw new InvalidOperationException("Maze must be generated before being solved.");
             }
+
+            throw new NotImplementedException();
         }
 
-        private void PutWallsEverywhere()
+        private IEnumerable<Node> GetUnvisitedNeighbours(Node node, bool[,] visitedCells)
         {
-
+            return _maze.GetNeighbours(node).Where(n => !visitedCells[n.Y, n.X]);
         }
+
+        private Node ChooseRandomNode(IEnumerable<Node> nodes)
+        {
+            var randomIndex = _random.Next(0, nodes.Count());
+
+            return nodes.ElementAt(randomIndex);
+        }
+
+        private void InitMazeDrawing(int width, int height)
+        {
+            _drawer.InitMazeArea(width, height);
+
+            for (int i = 0; i < height; i++)
+            {
+                for (int j = 0; j < width; j++)
+                {
+                    _drawer.InitNode(j, i);
+
+                    if (j < width - 1)
+                    {
+                        _drawer.DrawWallBetween(j, i, j + 1, i);
+                    }
+
+                    if (i < height - 1)
+                    {
+                        _drawer.DrawWallBetween(j, i, j, i + 1);
+                    }
+                }
+            }
+        }
+    }
+
+    public enum NodeState
+    {
+        Current,
+        Backtracked,
+        Unvisited,
+        Visited
     }
 
     public class MazeDrawer
     {
+        private static readonly Dictionary<NodeState, Brush> NodeStatesColors = new Dictionary<NodeState, Brush>
+        {
+            [NodeState.Backtracked] = Brushes.LimeGreen,
+            [NodeState.Current] = Brushes.GreenYellow,
+            [NodeState.Unvisited] = Brushes.AliceBlue,
+            [NodeState.Visited] = Brushes.Orange
+        };
+
         private readonly Canvas _drawingArea;
         private readonly int _nodeSize;
         private readonly Dictionary<(int, int), Line> _wallsFromNodesAddition = new Dictionary<(int, int), Line>();
-        private readonly List<Rectangle> _nodes = new List<Rectangle>();
+        private readonly Dictionary<int, Rectangle> _nodesFromHashCode = new Dictionary<int, Rectangle>();
 
         public MazeDrawer(Canvas drawingArea, int nodeSize)
         {
@@ -166,6 +219,22 @@ namespace MazeWPF
             _drawingArea.Height = mazeHeight * _nodeSize;
         }
 
+        public void InitNode(int x, int y)
+        {
+            var node = new Rectangle
+            {
+                Width = _nodeSize,
+                Height = _nodeSize,
+                Fill = NodeStatesColors[NodeState.Unvisited]
+            };
+
+            Canvas.SetLeft(node, x * _nodeSize);
+            Canvas.SetTop(node, y * _nodeSize);
+
+            _drawingArea.Children.Add(node);
+            _nodesFromHashCode.Add((x, y).GetHashCode(), node);
+        }
+
         public void DrawWallBetween(int x1, int y1, int x2, int y2)
         {
             var isVerticalWall = y1 == y2;
@@ -174,6 +243,19 @@ namespace MazeWPF
                 : this.DrawHorizontalLine(Math.Max(y1, y2) * _nodeSize, x1 * _nodeSize, (x1 + 1) * _nodeSize);
 
             this.SaveWall(wall, x1, y1, x2, y2);
+        }
+
+        public void RemoveWallBetween(int x1, int y1, int x2, int y2)
+        {
+            var nodesAddition = (x1 + x2, y1 + y2);
+
+            _drawingArea.Children.Remove(_wallsFromNodesAddition[nodesAddition]);
+            _wallsFromNodesAddition.Remove(nodesAddition);
+        }
+
+        public void ChangeNodeState(int x, int y, NodeState newState)
+        {
+            _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[newState];
         }
 
         private void SaveWall(Line wall, int x1, int y1, int x2, int y2)
@@ -220,15 +302,4 @@ namespace MazeWPF
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
 
