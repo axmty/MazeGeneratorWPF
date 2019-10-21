@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Input;
 
 namespace MazeWPF
 {
@@ -10,12 +11,22 @@ namespace MazeWPF
             InitializeComponent();
         }
 
+        private void ButtonClose_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
         private void Window_ContentRendered(object sender, EventArgs e)
         {
-            var mazeDrawer = new MazeStepByStepDrawer(Area, 25, 40);
+            var mazeDrawer = new MazeStepByStepDrawer(Area, 30, 60);
             var mazeEngine = new MazeEngine(mazeDrawer);
 
-            mazeEngine.GenerateRandom(30, 30);
+            mazeEngine.GenerateRandom(10, 10);
+        }
+
+        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            this.DragMove();
         }
     }
 }

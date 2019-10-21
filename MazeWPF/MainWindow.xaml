@@ -8,8 +8,45 @@
         ContentRendered="Window_ContentRendered"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
-        Background="DarkGray">
-    <Canvas Name="Area" ClipToBounds="True">
-        
-    </Canvas>
+        WindowStyle="None"
+        Background="DarkGray"
+        MouseDown="Window_MouseDown">
+    <DockPanel Background="DarkGray">
+        <Grid DockPanel.Dock="Top" Name="PanelTitleBar">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Grid.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontFamily" Value="Consolas" />
+                    <Setter Property="Foreground" Value="White" />
+                    <Setter Property="FontSize" Value="24" />
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
+            </Grid.Resources>
+
+            <WrapPanel Margin="10,0,0,0">
+                <TextBlock>Maze generator</TextBlock>
+            </WrapPanel>
+
+            <Button Grid.Column="2"
+                    DockPanel.Dock="Right"
+                    Background="Transparent"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    FontSize="20"
+                    BorderThickness="0"
+                    Name="ButtonClose"
+                    Click="ButtonClose_Click"
+                    Padding="10,0">X</Button>
+        </Grid>
+
+        <Border BorderBrush="DarkGray" BorderThickness="5">
+
+            <Canvas Name="Area" ClipToBounds="True">
+            </Canvas>
+        </Border>
+    </DockPanel>
 </Window>
