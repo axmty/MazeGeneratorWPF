@@ -10,10 +10,10 @@ namespace MazeWPF
             this.Y = y;
         }
 
+        public List<Node> ConnectedNodes { get; } = new List<Node>();
+
         public int X { get; }
 
         public int Y { get; }
-
-        public List<Node> ConnectedNodes { get; } = new List<Node>();
     }
 }

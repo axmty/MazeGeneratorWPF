@@ -10,6 +10,5 @@
         ResizeMode="NoResize"
         Background="DarkGray">
     <Canvas Name="Area" ClipToBounds="True">
-        
     </Canvas>
 </Window>

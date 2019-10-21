@@ -19,7 +19,7 @@ namespace MazeWPF
         {
             _maze = new Maze(width, height);
             this.InitMazeDrawing(width, height);
-            
+
             var visitedNodes = new bool[height, width];
             var backtrackStack = new Stack<Node>();
             var currentNode = _maze.FirstNode;
@@ -67,16 +67,16 @@ namespace MazeWPF
             throw new NotImplementedException();
         }
 
-        private IEnumerable<Node> GetUnvisitedNeighbours(Node node, bool[,] visitedCells)
-        {
-            return _maze.GetNeighbours(node).Where(n => !visitedCells[n.Y, n.X]);
-        }
-
         private Node ChooseRandomNode(IEnumerable<Node> nodes)
         {
             var randomIndex = _random.Next(0, nodes.Count());
 
             return nodes.ElementAt(randomIndex);
+        }
+
+        private IEnumerable<Node> GetUnvisitedNeighbours(Node node, bool[,] visitedCells)
+        {
+            return _maze.GetNeighbours(node).Where(n => !visitedCells[n.Y, n.X]);
         }
 
         private void InitMazeDrawing(int width, int height)
@@ -102,6 +102,4 @@ namespace MazeWPF
             }
         }
     }
-    
 }
-

@@ -23,13 +23,13 @@ namespace MazeWPF
             }
         }
 
+        public Node FirstNode => this[0, 0];
+
         public int Height { get; }
 
         public int Width { get; }
 
         public Node this[int x, int y] => this._nodes[y, x];
-
-        public Node FirstNode => this[0, 0];
 
         public IEnumerable<Node> GetNeighbours(Node node)
         {

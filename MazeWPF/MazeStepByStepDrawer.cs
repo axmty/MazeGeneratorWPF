@@ -20,11 +20,11 @@ namespace MazeWPF
         private static readonly Brush WallColor = new SolidColorBrush(Color.FromRgb(48, 57, 80));
 
         private readonly Canvas _drawingArea;
-        private readonly int _nodeSize;
-        private readonly Dictionary<(int, int), Line> _wallsFromNodesAddition = new Dictionary<(int, int), Line>();
-        private readonly Dictionary<int, Rectangle> _nodesFromHashCode = new Dictionary<int, Rectangle>();
-        private readonly Queue<Action> _steps = new Queue<Action>();
         private readonly int _interval;
+        private readonly Dictionary<int, Rectangle> _nodesFromHashCode = new Dictionary<int, Rectangle>();
+        private readonly int _nodeSize;
+        private readonly Queue<Action> _steps = new Queue<Action>();
+        private readonly Dictionary<(int, int), Line> _wallsFromNodesAddition = new Dictionary<(int, int), Line>();
 
         public MazeStepByStepDrawer(Canvas drawingArea, int nodeSize, int interval)
         {
@@ -33,12 +33,23 @@ namespace MazeWPF
             _interval = interval;
         }
 
-        public void InitMazeArea(int mazeWidth, int mazeHeight)
+        public void ChangeNodesState(params (int x, int y, NodeState state)[] newNodesState)
         {
-            this.ClearArea();
+            _steps.Enqueue(() =>
+            {
+                foreach (var (x, y, state) in newNodesState)
+                {
+                    _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[state];
+                }
+            });
+        }
 
-            _drawingArea.Width = mazeWidth * _nodeSize;
-            _drawingArea.Height = mazeHeight * _nodeSize;
+        public void ChangeNodeState(int x, int y, NodeState newState)
+        {
+            _steps.Enqueue(() =>
+            {
+                _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[newState];
+            });
         }
 
         public void Draw()
@@ -62,6 +73,24 @@ namespace MazeWPF
             timer.Start();
         }
 
+        public void DrawWallBetween(int x1, int y1, int x2, int y2)
+        {
+            var isVerticalWall = y1 == y2;
+            var wall = isVerticalWall
+                ? this.DrawVerticalLine(Math.Max(x1, x2) * _nodeSize, y1 * _nodeSize, (y1 + 1) * _nodeSize, WallColor)
+                : this.DrawHorizontalLine(Math.Max(y1, y2) * _nodeSize, x1 * _nodeSize, (x1 + 1) * _nodeSize, WallColor);
+
+            this.SaveWall(wall, x1, y1, x2, y2);
+        }
+
+        public void InitMazeArea(int mazeWidth, int mazeHeight)
+        {
+            this.ClearArea();
+
+            _drawingArea.Width = mazeWidth * _nodeSize;
+            _drawingArea.Height = mazeHeight * _nodeSize;
+        }
+
         public void InitNode(int x, int y)
         {
             var node = new Rectangle
@@ -78,16 +107,6 @@ namespace MazeWPF
             _nodesFromHashCode.Add((x, y).GetHashCode(), node);
         }
 
-        public void DrawWallBetween(int x1, int y1, int x2, int y2)
-        {
-            var isVerticalWall = y1 == y2;
-            var wall = isVerticalWall
-                ? this.DrawVerticalLine(Math.Max(x1, x2) * _nodeSize, y1 * _nodeSize, (y1 + 1) * _nodeSize, WallColor)
-                : this.DrawHorizontalLine(Math.Max(y1, y2) * _nodeSize, x1 * _nodeSize, (x1 + 1) * _nodeSize, WallColor);
-
-            this.SaveWall(wall, x1, y1, x2, y2);
-        }
-
         public void RemoveWallBetween(int x1, int y1, int x2, int y2)
         {
             _steps.Enqueue(() =>
@@ -99,35 +118,14 @@ namespace MazeWPF
             });
         }
 
-        public void ChangeNodeState(int x, int y, NodeState newState)
+        private void ClearArea()
         {
-            _steps.Enqueue(() =>
-            {
-                _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[newState];
-            });
+            _drawingArea.Children.Clear();
         }
 
-        public void ChangeNodesState(params (int x, int y, NodeState state)[] newNodesState)
+        private Line DrawHorizontalLine(int y, int x1, int x2, Brush color)
         {
-            _steps.Enqueue(() =>
-            {
-                foreach (var (x, y, state) in newNodesState)
-                {
-                    _nodesFromHashCode[(x, y).GetHashCode()].Fill = NodeStatesColors[state];
-                }
-            });
-        }
-
-        private void SaveWall(Line wall, int x1, int y1, int x2, int y2)
-        {
-            var nodesAddition = (x1 + x2, y1 + y2);
-
-            if (_wallsFromNodesAddition.ContainsKey(nodesAddition))
-            {
-                throw new InvalidOperationException("There is already a wall saved for these two nodes.");
-            }
-
-            _wallsFromNodesAddition.Add(nodesAddition, wall);
+            return this.DrawLine(x1, x2, y, y, color);
         }
 
         private Line DrawLine(int x1, int x2, int y1, int y2, Brush color)
@@ -152,14 +150,16 @@ namespace MazeWPF
             return this.DrawLine(x, x, y1, y2, color);
         }
 
-        private Line DrawHorizontalLine(int y, int x1, int x2, Brush color)
+        private void SaveWall(Line wall, int x1, int y1, int x2, int y2)
         {
-            return this.DrawLine(x1, x2, y, y, color);
-        }
+            var nodesAddition = (x1 + x2, y1 + y2);
 
-        private void ClearArea()
-        {
-            _drawingArea.Children.Clear();
+            if (_wallsFromNodesAddition.ContainsKey(nodesAddition))
+            {
+                throw new InvalidOperationException("There is already a wall saved for these two nodes.");
+            }
+
+            _wallsFromNodesAddition.Add(nodesAddition, wall);
         }
     }
 }
